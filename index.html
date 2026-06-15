@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Urban 360 - 3D Parametric Planner</title>
+    <!-- Google Fonts: Outfit for titles, Inter for UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="icon" href="data:;base64,=" />
+  </head>
+
+  <body>
+    <!-- Login Gate Overlay (Redirect / Loading State) -->
+    <div id="login-overlay" class="login-overlay">
+      <div class="login-card">
+        <div class="login-logo">
+          <svg class="viewpro-logo" viewBox="0 0 100 100" width="36" height="36" style="flex-shrink: 0; margin-right: 4px;">
+            <path d="M 0 33 L 24 33 L 43 75 L 76 0 L 100 0 L 52 100 L 30 100 Z" fill="currentColor" />
+            <path d="M 8 0 L 30 0 L 24 33 Z" fill="#ef5f5f" />
+          </svg>
+          Urban<span>360</span> Planner
+        </div>
+        <div class="login-tagline">3D Parametric Urban Planner Portal</div>
+        <div class="loading-container">
+          <svg class="icon spin" viewBox="0 0 24 24" width="32" height="32" fill="#0066ff">
+            <path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c4.41 0 8-3.59 8-8h2c0 5.52-4.48 10-10 10v-2z" />
+          </svg>
+          <div class="loading-text">Verifying ArcGIS Authentication...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Layout (hidden by default) -->
+    <div id="app-container" class="app-container hidden">
+      <!-- Top-Center Search Component -->
+      <arcgis-search id="location-search" class="custom-search" reference-element="scene-view"></arcgis-search>
+
+      <!-- 3D Scene View Component -->
+      <arcgis-scene id="scene-view">
+      </arcgis-scene>
+
+      <!-- Floating Bottom-Center Sketch Component -->
+      <arcgis-sketch id="map-sketch" class="custom-sketch collapsed" reference-element="scene-view"></arcgis-sketch>
+
+      <!-- Left Sidebar: Settings, Basemaps, Insights -->
+      <div class="sidebar sidebar-left">
+        <div class="sidebar-header">
+          <div class="header-main-row">
+            <div class="brand-container">
+              <svg class="viewpro-logo" viewBox="0 0 100 100" width="20" height="20" style="flex-shrink: 0;">
+                <path d="M 0 33 L 24 33 L 43 75 L 76 0 L 100 0 L 52 100 L 30 100 Z" fill="currentColor" />
+                <path d="M 8 0 L 30 0 L 24 33 Z" fill="#ef5f5f" />
+              </svg>
+              <div class="brand-text">
+                <div class="app-title">Urban<span>360</span> Planner</div>
+                <div class="app-subtitle">Parametric Workspace</div>
+              </div>
+            </div>
+            <button id="btn-signout" class="btn btn-secondary btn-sm" title="Sign Out">Sign Out</button>
+          </div>
+        </div>
+
+        <div class="sidebar-content">
+          <!-- BT Layer Dropdown -->
+          <div class="panel-section">
+            <label class="control-label">Target Boundary Layer</label>
+            <div class="select-wrapper">
+              <select id="select-bt-layer" class="form-control">
+                <option value="drawn">Drawn Parcels (Local)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Active Basemap Dropdown -->
+          <div class="panel-section">
+            <label class="control-label">Active Basemap</label>
+            <div class="select-wrapper">
+              <select id="select-basemap" class="form-control">
+                <option value="satellite">Satellite</option>
+                <option value="dark-gray-vector" selected>Dark Gray</option>
+                <option value="streets-vector">Streets</option>
+                <option value="topo-vector">Topographic</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Model Insights Report -->
+          <div class="panel-section flex-grow">
+            <div class="section-title-container">
+              <label class="control-label">Model Insights</label>
+              <span class="pulse-dot hidden" id="insight-active-dot"></span>
+            </div>
+            <div class="insights-container" id="insights-panel">
+              <div class="empty-state">
+                <svg class="empty-icon" viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2zm0 8H7v-2h10v2z"/>
+                </svg>
+                <p>Generate a 3D model or select a model to view CGA engine reports and architectural metrics.</p>
+              </div>
+              <div id="insights-content" class="hidden">
+                <div class="insight-summary-card">
+                  <div class="insight-model-name" id="insight-rpk-name">BLDG_Units.rpk</div>
+                  <div class="insight-main-metric">
+                    <span class="metric-val" id="insight-main-val">--</span>
+                    <span class="metric-unit" id="insight-main-unit">sqm</span>
+                    <div class="metric-label" id="insight-main-label">Gross Floor Area</div>
+                  </div>
+                </div>
+                <div class="insight-divider">Detailed Metrics</div>
+                <div class="insight-table-wrapper">
+                  <table class="insight-table">
+                    <tbody id="insights-table-body">
+                      <!-- Dynamically filled with pyprt reports -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Parametric Generator Wizard & Layers Manager -->
+      <div class="sidebar sidebar-right">
+        <!-- Wizard Navigation Button/Indicator -->
+        <div class="wizard-header">
+          <div class="wizard-progress-bar">
+            <div class="progress-line" id="wizard-progress-line"></div>
+            <div class="step-node active" data-step="1" title="Footprint">1</div>
+            <div class="step-node" data-step="2" title="Rule Package">2</div>
+            <div class="step-node" data-step="3" title="Parameters">3</div>
+            <div class="step-node" data-step="4" title="Generate">4</div>
+          </div>
+        </div>
+
+        <div class="sidebar-content">
+          <!-- WIZARD STEP PANELS -->
+          <div class="wizard-panels">
+            <!-- Step 1: Draw / Select Footprint -->
+            <div class="wizard-panel active" id="step-panel-1">
+              <h3 class="step-title">1. Identify Footprint</h3>
+              <p class="step-desc">Draw a new parcel footprint directly on the terrain, or select a parcel from a loaded feature service.</p>
+              
+              <div class="btn-group">
+                <button id="btn-draw-mode" class="btn btn-secondary flex-grow">
+                  <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                  </svg>
+                  Draw Parcel
+                </button>
+                <button id="btn-select-mode" class="btn btn-secondary flex-grow">
+                  <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  </svg>
+                  Select Feature
+                </button>
+              </div>
+
+              <div class="selection-status-box empty" id="footprint-status-box">
+                <div class="status-icon-container">
+                  <svg class="status-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  </svg>
+                </div>
+                <div class="status-text">No footprint selected or drawn yet.</div>
+              </div>
+
+              <div class="wizard-footer">
+                <button id="btn-goto-step-2" class="btn btn-primary width-100" disabled>
+                  Continue to Rules
+                  <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-8.15-1.42 1.42L16.86 11H5v2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Choose RPK -->
+            <div class="wizard-panel" id="step-panel-2">
+              <h3 class="step-title">2. Choose CGA Rule</h3>
+              <p class="step-desc">Select the Procedural Rule Package (RPK) to apply to your parcel footprint.</p>
+
+              <div class="panel-section">
+                <label class="control-label">Rule Package (RPK)</label>
+                <div class="select-wrapper">
+                  <select id="select-rpk" class="form-control">
+                    <option value="" disabled selected>Select an RPK rule...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="rpk-info-box hidden" id="rpk-info-box">
+                <div class="rpk-info-title" id="rpk-info-title">BLDG_Units.rpk</div>
+                <p class="rpk-info-desc" id="rpk-info-desc">Generates detailed multi-unit residential buildings with custom heights, setbacks, and unit layouts.</p>
+              </div>
+
+              <div class="wizard-footer btn-group">
+                <button id="btn-back-to-step-1" class="btn btn-secondary">Back</button>
+                <button id="btn-goto-step-3" class="btn btn-primary flex-grow" disabled>Configure Parameters</button>
+              </div>
+            </div>
+
+            <!-- Step 3: Configure Parameters -->
+            <div class="wizard-panel" id="step-panel-3">
+              <h3 class="step-title">3. Set Parameters</h3>
+              <p class="step-desc">Configure the dimensional, structural, and material parameters for procedural generation.</p>
+
+              <!-- Dynamic Parameters Container -->
+              <div class="dynamic-params-container" id="rpk-params-form">
+                <!-- Dynamically loaded sliders, inputs, toggles -->
+              </div>
+
+              <div class="wizard-footer btn-group">
+                <button id="btn-back-to-step-2" class="btn btn-secondary">Back</button>
+                <button id="btn-goto-step-4" class="btn btn-primary flex-grow">Review & Generate</button>
+              </div>
+            </div>
+
+            <!-- Step 4: Generate -->
+            <div class="wizard-panel" id="step-panel-4">
+              <h3 class="step-title">4. Generate 3D Model</h3>
+              <p class="step-desc">Verify your configuration details and launch the CityPyPRT procedural generation engine.</p>
+
+              <div class="summary-list">
+                <div class="summary-item">
+                  <span class="summary-label">Footprint Area</span>
+                  <span class="summary-value" id="summary-area">-- sqm</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Selected Rule</span>
+                  <span class="summary-value" id="summary-rpk">--</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Param Count</span>
+                  <span class="summary-value" id="summary-params">0 configured</span>
+                </div>
+              </div>
+
+              <!-- Main Generation Trigger Button -->
+              <button id="btn-generate-model" class="btn btn-primary btn-large width-100 margin-t-20">
+                <svg class="icon spin hidden" id="generate-spinner" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c4.41 0 8-3.59 8-8h2c0 5.52-4.48 10-10 10v-2z"/>
+                </svg>
+                <span id="generate-btn-text">Generate 3D Model</span>
+              </button>
+
+              <div class="wizard-footer btn-group">
+                <button id="btn-back-to-step-3" class="btn btn-secondary">Back</button>
+                <button id="btn-restart-wizard" class="btn btn-secondary">Reset Wizard</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <!-- Layers & Models Manager -->
+          <div class="panel-section flex-grow">
+            <label class="control-label">Layers Manager</label>
+            
+            <!-- Add Layer Box -->
+            <div class="add-layer-box">
+              <input type="text" id="input-layer-url" placeholder="AGOL Feature Layer URL..." class="form-control form-control-sm" />
+              <button id="btn-add-layer" class="btn btn-primary btn-sm">Add</button>
+            </div>
+
+            <!-- Layers/Models List Container -->
+            <div class="layers-manager-list" id="layers-manager-list">
+              <!-- Dynamically populated layers and generated models -->
+              <div class="manager-section">
+                <div class="manager-section-title">Reference Layers</div>
+                <div class="manager-item">
+                  <div class="manager-item-label">Drawn Footprints</div>
+                  <div class="manager-item-actions">
+                    <button class="btn-icon active" id="btn-toggle-parcels" title="Toggle Visibility">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="manager-section">
+                <div class="manager-section-title">Procedural 3D Models</div>
+                <div id="models-list-container">
+                  <div class="empty-state-small">No 3D models placed.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
