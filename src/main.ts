@@ -144,6 +144,9 @@ async function initApp() {
     }
   }
 
+  // Switch to the Active Basemap: Imagery (satellite) on load
+  webScene.basemap = "satellite";
+
   sceneElement.map = webScene;
 
   // Wait for scene readiness
