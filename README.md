@@ -1,2 +1,2 @@
 # planner-alpha
-Esri ecosystem to build and explore the solutions to make planner life ea for their everyday work.
+Utilising Esri ecosystem to build and explore the solutions to make planner life easy for their everyday work.
