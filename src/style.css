@@ -859,6 +859,21 @@ arcgis-scene {
   background-color: #f8fafc;
 }
 
+.param-group-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 700;
+  margin-top: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+.param-group-header:first-of-type {
+  margin-top: 0;
+}
+
 .param-item {
   display: flex;
   flex-direction: column;

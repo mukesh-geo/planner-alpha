@@ -687,8 +687,30 @@ function buildParametersForm() {
       step: local?.step,
       options: local?.options || attr.options,
       uiType: local?.uiType,
-      description: local?.description
+      description: local?.description,
+      group: local?.group || 'other',
+      order: local?.order !== undefined ? local.order : 999
     };
+  });
+
+  // Sort by group weight (primary -> detailed -> material -> other), then by order, then alphabetically by name
+  const groupWeights: Record<string, number> = {
+    'primary': 1,
+    'detailed': 2,
+    'material': 3,
+    'other': 4
+  };
+
+  paramsToRender.sort((a, b) => {
+    const weightA = groupWeights[a.group] || 4;
+    const weightB = groupWeights[b.group] || 4;
+    if (weightA !== weightB) {
+      return weightA - weightB;
+    }
+    if (a.order !== b.order) {
+      return a.order - b.order;
+    }
+    return a.name.localeCompare(b.name);
   });
 
   if (paramsToRender.length === 0) {
@@ -696,7 +718,24 @@ function buildParametersForm() {
     return;
   }
 
+  let currentGroup = "";
+
   paramsToRender.forEach(param => {
+    // Inject group headers when transition occurs
+    if (param.group !== currentGroup) {
+      currentGroup = param.group;
+      const groupHeader = document.createElement("div");
+      groupHeader.className = "param-group-header";
+      
+      let label = "Other Parameters";
+      if (currentGroup === 'primary') label = "Primary Parameters";
+      else if (currentGroup === 'detailed') label = "Detailed Specifications";
+      else if (currentGroup === 'material') label = "Materials & Aesthetics";
+      
+      groupHeader.innerText = label;
+      form.appendChild(groupHeader);
+    }
+
     const item = document.createElement("div");
     item.className = "param-item";
 
