@@ -159,7 +159,12 @@ async function initApp() {
   }
 
   // Initialize Graphic Layers
-  parcelLayer = new GraphicsLayer({ title: "Drawn Parcels" });
+  parcelLayer = new GraphicsLayer({
+    title: "Drawn Parcels",
+    elevationInfo: {
+      mode: "on-the-ground"
+    }
+  });
   modelsLayer = new GraphicsLayer({ title: "Procedural 3D Models" });
   view.map.addMany([parcelLayer, modelsLayer]);
 
