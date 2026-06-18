@@ -20,11 +20,9 @@ This portal allows urban planners to draw parcel footprints or select parcel fea
 4. **FastAPI & PyPRT Integration**:
    - Communicates with a local Python FastAPI service to list Rule Packages (RPKs) and fetch dynamic rule parameter metadata.
    - Generates 3D GLTF models on-the-fly from GeoJSON footprint coordinates.
-5. **Default Imagery Basemap**:
-   - Switches the 3D WebScene's basemap on startup from the default saved basemap to the high-resolution ArcGIS Satellite Imagery basemap.
-6. **Model Insights**:
+5. **Model Insights**:
    - Visualizes detailed CGA report metrics (e.g., Gross Floor Area, volume, floor count) directly in a dedicated analytics panel.
-7. **Clean Console Logging**:
+6. **Clean Console Logging**:
    - Cleaned up verbose debug logs from the browser console (OAuth Client ID, redirect URIs, WebScene loading states, basemap queries, geometry transformations, and coordinate metrics).
    - Preserves warning and error levels (`console.warn`, `console.error`) to ensure developers can troubleshoot genuine system failures.
 

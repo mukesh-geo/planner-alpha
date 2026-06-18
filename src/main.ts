@@ -75,7 +75,10 @@ async function triggerLogin() {
 }
 
 function onLoginSuccess() {
-  loginOverlay.classList.add("hidden");
+  const loadingText = document.querySelector(".login-overlay .loading-text");
+  if (loadingText) {
+    loadingText.textContent = "Loading 3D WebScene & Assets...";
+  }
   appContainer.classList.remove("hidden");
   initApp();
 }
@@ -144,9 +147,6 @@ async function initApp() {
     }
   }
 
-  // Switch to the Active Basemap: Imagery (satellite) on load
-  webScene.basemap = "satellite";
-
   sceneElement.map = webScene;
 
   // Wait for scene readiness
@@ -184,6 +184,9 @@ async function initApp() {
     esriId.destroyCredentials();
     window.location.reload();
   });
+
+  // Hide the loading gate overlay now that the view and all maps are fully loaded & ready
+  loginOverlay.classList.add("hidden");
 }
 
 // ---------------------------------------------------------------------------
