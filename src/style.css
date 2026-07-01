@@ -759,6 +759,7 @@ arcgis-scene {
 .wizard-panels {
   position: relative;
   min-height: 250px;
+  flex-shrink: 0;
 }
 .wizard-panel {
   display: none;
@@ -930,7 +931,7 @@ arcgis-scene {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 10px;
-  max-height: 140px;
+  max-height: 320px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

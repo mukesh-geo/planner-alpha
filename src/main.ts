@@ -99,6 +99,7 @@ let currentParamValues: Record<string, any> = {};
 
 interface PlacedModel {
   id: string;
+  parcelId?: string;
   rpkName: string;
   glbUrl: string;
   centroid: Point;
@@ -398,11 +399,147 @@ function initSketch() {
   sketchComponent.addEventListener("arcgisCreate", async (event: any) => {
     const detail = event.detail;
     if (detail.state === "complete") {
-      parcelLayer.removeAll();
-      activeGraphic = detail.graphic;
-      parcelLayer.add(activeGraphic!);
+      const newGraphic = detail.graphic;
+      const parcelId = "parcel_" + Date.now();
+      let parcelNum = parcelLayer.graphics.length;
+      if (!parcelLayer.graphics.includes(newGraphic)) {
+        parcelNum += 1;
+      }
+      newGraphic.attributes = {
+        id: parcelId,
+        name: "Parcel " + parcelNum
+      };
+      activeGraphic = newGraphic;
+      styleParcels();
+      updateParcelsListUI();
       await updateFootprintStatus("drawn", activeGraphic!);
     }
+  });
+}
+
+function styleParcels() {
+  parcelLayer.graphics.forEach((graphic) => {
+    const isSelected = activeGraphic && (graphic.attributes?.id === activeGraphic.attributes?.id);
+    graphic.symbol = {
+      type: "simple-fill",
+      color: isSelected ? "rgba(0, 102, 255, 0.3)" : "rgba(0, 102, 255, 0.1)",
+      outline: {
+        color: isSelected ? "#0052cc" : "#0066ff",
+        width: isSelected ? 3.5 : 1.5,
+        style: "solid"
+      }
+    } as any;
+  });
+}
+
+function updateParcelsListUI() {
+  const container = document.getElementById("parcels-list-container") as HTMLDivElement;
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (parcelLayer.graphics.length === 0) {
+    container.innerHTML = '<div class="empty-state-small">No parcels drawn.</div>';
+    return;
+  }
+
+  parcelLayer.graphics.forEach(graphic => {
+    const id = graphic.attributes?.id;
+    const name = graphic.attributes?.name || "Unnamed Parcel";
+
+    const item = document.createElement("div");
+    item.className = "manager-item";
+    if (activeGraphic && activeGraphic.attributes?.id === id) {
+      item.classList.add("active");
+    }
+
+    item.addEventListener("click", (e: any) => {
+      if (e.target.closest("button") || e.target.closest("svg")) return;
+
+      activeGraphic = graphic;
+      styleParcels();
+      updateParcelsListUI();
+
+      updateFootprintStatus("drawn", activeGraphic);
+
+      const assocModel = placedModels.find(m => m.parcelId === id);
+      if (assocModel) {
+        selectModel(assocModel.id);
+      } else {
+        selectedModelId = null;
+        updateModelsListUI();
+        document.getElementById("insights-content")?.classList.add("hidden");
+        document.querySelector("#insights-panel .empty-state")?.classList.remove("hidden");
+        document.getElementById("insight-active-dot")?.classList.add("hidden");
+      }
+    });
+
+    const label = document.createElement("div");
+    label.className = "manager-item-label";
+    label.innerText = name;
+
+    const actions = document.createElement("div");
+    actions.className = "manager-item-actions";
+
+    const btnVis = document.createElement("button");
+    btnVis.className = `btn-icon ${graphic.visible ? "active" : ""}`;
+    btnVis.title = "Toggle Visibility";
+    btnVis.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+        ${graphic.visible
+        ? '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>'
+        : '<path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.82l2.92 2.92c1.51-1.26 2.7-2.89 3.44-4.74-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.34-4.3l1.83 1.83C13.2 7.12 12.62 7 12 7c-2.76 0-5 2.24-5 5 0 .62.12 1.2.33 1.7l1.83 1.83c-.1-.28-.16-.58-.16-.9 0-1.66 1.34-3 3-3 .32 0 .62.06.9.16z"/>'}
+      </svg>
+    `;
+    btnVis.addEventListener("click", (e) => {
+      e.stopPropagation();
+      graphic.visible = !graphic.visible;
+      updateParcelsListUI();
+    });
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn-icon danger";
+    btnDel.title = "Delete Parcel";
+    btnDel.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+      </svg>
+    `;
+    btnDel.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      parcelLayer.remove(graphic);
+
+      const associatedModels = placedModels.filter(m => m.parcelId === id);
+      associatedModels.forEach(m => {
+        modelsLayer.remove(m.graphic);
+      });
+      placedModels = placedModels.filter(m => m.parcelId !== id);
+
+      if (activeGraphic && activeGraphic.attributes?.id === id) {
+        activeGraphic = null;
+        const statusBox = document.getElementById("footprint-status-box") as HTMLDivElement;
+        statusBox.className = "selection-status-box empty";
+        statusBox.innerHTML = `
+          <div class="status-icon-container">
+            <svg class="status-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+          </div>
+          <div class="status-text">No footprint selected or drawn yet.</div>
+        `;
+        (document.getElementById("btn-goto-step-2") as HTMLButtonElement).disabled = true;
+      }
+
+      styleParcels();
+      updateParcelsListUI();
+      updateModelsListUI();
+    });
+
+    actions.appendChild(btnVis);
+    actions.appendChild(btnDel);
+    item.appendChild(label);
+    item.appendChild(actions);
+    container.appendChild(item);
   });
 }
 
@@ -430,16 +567,51 @@ function enableSelectionMode() {
     const targetLayer = getSelectedLayer();
     if (!targetLayer) return;
 
+    let selectedGraphic: Graphic | null = null;
     const response = await view.hitTest(event);
     const results = response.results.filter(
       (r: any) => r.type === "graphic" && r.graphic && r.graphic.layer === targetLayer
     );
 
     if (results.length > 0) {
-      const selectedGraphic = results[0].graphic;
+      selectedGraphic = results[0].graphic;
+    } else if (targetLayer && typeof targetLayer.queryFeatures === "function") {
+      try {
+        const query = targetLayer.createQuery();
+        query.geometry = event.mapPoint;
+        query.spatialRelationship = "intersects";
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+        const queryResult = await targetLayer.queryFeatures(query);
+        if (queryResult.features && queryResult.features.length > 0) {
+          const feat = queryResult.features[0];
+          feat.layer = targetLayer;
+          selectedGraphic = feat;
+        }
+      } catch (error) {
+        console.error("Failed querying features from layer:", error);
+      }
+    }
+
+    if (selectedGraphic) {
       if (selectedGraphic.geometry && selectedGraphic.geometry.type === "polygon") {
         activeGraphic = selectedGraphic;
-        await updateFootprintStatus("selected", activeGraphic!);
+        const source = (targetLayer === parcelLayer) ? "drawn" : "selected";
+        await updateFootprintStatus(source, activeGraphic!);
+        styleParcels();
+        updateParcelsListUI();
+
+        // Select associated 3D model if it exists
+        const assocModel = placedModels.find(m => m.parcelId === activeGraphic!.attributes?.id);
+        if (assocModel) {
+          selectModel(assocModel.id);
+        } else {
+          selectedModelId = null;
+          updateModelsListUI();
+          document.getElementById("insights-content")?.classList.add("hidden");
+          document.querySelector("#insights-panel .empty-state")?.classList.remove("hidden");
+          document.getElementById("insight-active-dot")?.classList.add("hidden");
+        }
       }
     }
   });
@@ -488,19 +660,38 @@ async function updateFootprintStatus(source: string, graphic: Graphic) {
   gotoStep2Btn.disabled = false;
 
   if (source === "selected") {
-    parcelLayer.removeAll();
-    const highlightGraphic = new Graphic({
-      geometry: poly,
-      symbol: {
-        type: "simple-fill",
-        color: "rgba(0, 102, 255, 0.15)",
-        outline: {
-          color: "#0066ff",
-          width: 2
-        }
-      } as any
+    const centroidKey = `${centroid.x.toFixed(3)},${centroid.y.toFixed(3)}`;
+    let existingGraphic = parcelLayer.graphics.find(g => {
+      const gCentroid = centroidOperator.execute(g.geometry as Polygon);
+      if (!gCentroid) return false;
+      const gCentroidKey = `${gCentroid.x.toFixed(3)},${gCentroid.y.toFixed(3)}`;
+      return gCentroidKey === centroidKey;
     });
-    parcelLayer.add(highlightGraphic);
+
+    if (existingGraphic) {
+      activeGraphic = existingGraphic;
+    } else {
+      const parcelId = "parcel_" + Date.now();
+      const highlightGraphic = new Graphic({
+        geometry: poly,
+        symbol: {
+          type: "simple-fill",
+          color: "rgba(0, 102, 255, 0.15)",
+          outline: {
+            color: "#0066ff",
+            width: 2
+          }
+        } as any,
+        attributes: {
+          id: parcelId,
+          name: `Selected Feature ${parcelLayer.graphics.length + 1}`
+        }
+      });
+      parcelLayer.add(highlightGraphic);
+      activeGraphic = highlightGraphic;
+    }
+    styleParcels();
+    updateParcelsListUI();
   }
 }
 
@@ -540,11 +731,12 @@ function initWizard() {
   document.getElementById("btn-back-to-step-3")?.addEventListener("click", () => goToStep(3));
 
   document.getElementById("btn-restart-wizard")?.addEventListener("click", () => {
-    parcelLayer.removeAll();
     activeGraphic = null;
     selectedRpkName = "";
     rpkAttributes = [];
     currentParamValues = {};
+    styleParcels();
+    updateParcelsListUI();
 
     hideSketchComponent();
     if (sketchComponent) sketchComponent.cancel();
@@ -1016,6 +1208,16 @@ async function generate3DModel() {
     // No rotation or mirroring is required.
 
     const modelId = "model_" + Date.now();
+    const parcelId = activeGraphic.attributes?.id;
+
+    if (parcelId) {
+      const existingModel = placedModels.find(m => m.parcelId === parcelId);
+      if (existingModel) {
+        modelsLayer.remove(existingModel.graphic);
+        placedModels = placedModels.filter(m => m.id !== existingModel.id);
+      }
+    }
+
     const modelGraphic = new Graphic({
       geometry: mesh,
       symbol: {
@@ -1027,6 +1229,7 @@ async function generate3DModel() {
 
     const placedModel: PlacedModel = {
       id: modelId,
+      parcelId: parcelId,
       rpkName: selectedRpkName,
       glbUrl: modelGlbUrl,
       centroid: placementCentroid,
@@ -1077,6 +1280,7 @@ function initLayersManager() {
     addAGOLLayer(input.value);
   });
 
+  updateParcelsListUI();
   updateModelsListUI();
 }
 
@@ -1089,11 +1293,19 @@ async function addAGOLLayer(urlOrItem: string) {
       layer = new FeatureLayer({
         portalItem: {
           id: urlOrItem
+        },
+        outFields: ["*"],
+        elevationInfo: {
+          mode: "on-the-ground"
         }
       });
     } else if (urlOrItem.startsWith("http")) {
       layer = new FeatureLayer({
-        url: urlOrItem
+        url: urlOrItem,
+        outFields: ["*"],
+        elevationInfo: {
+          mode: "on-the-ground"
+        }
       });
     } else {
       alert("Please enter a valid AGOL Feature Layer URL or 32-character Item ID.");
@@ -1112,6 +1324,9 @@ async function addAGOLLayer(urlOrItem: string) {
     opt.value = layer.id;
     opt.innerText = layer.title || "External Feature Layer";
     selectBt.appendChild(opt);
+
+    // Auto-select the newly added layer
+    selectBt.value = layer.id;
 
     addLayerToManagerUI(layer);
 
@@ -1254,6 +1469,16 @@ function selectModel(modelId: string) {
 
   const model = placedModels.find(m => m.id === modelId);
   if (!model) return;
+
+  if (model.parcelId) {
+    const parcelGraphic = parcelLayer.graphics.find(g => g.attributes?.id === model.parcelId);
+    if (parcelGraphic && (!activeGraphic || activeGraphic.attributes?.id !== model.parcelId)) {
+      activeGraphic = parcelGraphic;
+      styleParcels();
+      updateParcelsListUI();
+      updateFootprintStatus("drawn", activeGraphic);
+    }
+  }
 
   displayModelReports(model);
 }
